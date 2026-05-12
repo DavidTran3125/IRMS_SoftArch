@@ -99,10 +99,10 @@ export default function Auth() {
       <motion.main 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="relative z-10 w-full max-w-[1100px] flex shadow-2xl rounded-3xl overflow-hidden h-auto min-h-[700px] m-6 bg-white shrink-0"
+        className="relative z-10 w-full max-w-[1100px] flex shadow-2xl rounded-3xl overflow-hidden h-fit min-h-[600px] m-6 bg-white shrink-0"
       >
         {/* Left Side - Fixed Info Frame (40%) */}
-        <section className="hidden lg:flex w-[40%] flex-col justify-between p-12 bg-[#0F4C5C] text-white overflow-hidden relative">
+        <section className="hidden lg:flex w-[40%] flex-col justify-between p-12 bg-[#0F4C5C] text-white overflow-hidden relative self-stretch">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
           
           <div className="space-y-6 relative z-10">
@@ -161,9 +161,9 @@ export default function Auth() {
         </section>
 
         {/* Right Side - Form Section (60%) */}
-        <section className="w-full lg:w-[60%] flex flex-col p-8 lg:p-12 overflow-y-auto bg-white min-h-[700px]">
+        <section className="w-full lg:w-[60%] flex flex-col p-8 lg:p-12 overflow-y-auto bg-white min-h-[600px]">
           {/* Tabs */}
-          <div className="flex mb-10 border-b border-slate-100 sticky top-0 bg-white z-10 pt-2">
+          {/* <div className="flex mb-10 border-b border-slate-100 sticky top-0 bg-white z-10 pt-2">
             <button 
               onClick={() => toggleMode('login')}
               className={`flex-1 pb-4 text-center text-sm transition-all ${
@@ -180,7 +180,7 @@ export default function Auth() {
             >
               Create Account
             </button>
-          </div>
+          </div> */}
 
           <AnimatePresence mode="wait">
             {mode === 'login' ? (

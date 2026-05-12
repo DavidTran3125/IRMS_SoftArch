@@ -15,14 +15,18 @@ import {
   Mail,
   User as UserIcon,
   Check,
+  CheckCircle2,
+  ArrowRight,
+  UserX,
+  AlertTriangle,
   User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEffect, useState } from 'react';
+import { data } from 'react-router-dom';
 
 export default function Users() {
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
 
   const [email, setEmail] = useState('');
@@ -33,6 +37,8 @@ export default function Users() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const [users, setUsers] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
@@ -45,9 +51,51 @@ export default function Users() {
   const [searchName, setSearchName] = useState('');
   const [searchRole, setSearchRole] = useState('');
 
-  const handleOpenPasswordModal = (user: any) => {
+  const [showInactiveModal, setShowInactiveModal] = useState(false);
+  const [inactiveLoading, setInactiveLoading] = useState(false);
+  const [inactiveError, setInactiveError] = useState('');
+
+  const handleOpenInactiveModal = (user: any) => {
     setSelectedUser(user);
-    setShowPasswordModal(true);
+    setShowInactiveModal(true);
+  };
+
+  const handleInactiveUser = async () => {
+    if (!selectedUser) return;
+
+    try {
+      setInactiveLoading(true);
+      setInactiveError('');
+
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(
+        `http://localhost:8080/api/user/${selectedUser.id}/inactive`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Vô hiệu hóa tài khoản thất bại');
+      }
+
+      setShowInactiveModal(false);
+      setSuccessMessage('Tài khoản nhân viên đã được vô hiệu hóa thành công.');
+      setShowSuccessModal(true);
+      fetchUsers(page.number);
+
+    } catch (err: any) {
+      console.error(err);
+      setInactiveError(err.message || 'Có lỗi xảy ra');
+    } finally {
+      setInactiveLoading(false);
+    }
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -82,7 +130,8 @@ export default function Users() {
 
       console.log('Create user success:', data);
 
-      alert('Thêm nhân viên thành công');
+      setSuccessMessage('Nhân viên mới đã được tạo thành công trong hệ thống.');
+      setShowSuccessModal(true);
 
       // reset form
       setEmail('');
@@ -134,7 +183,7 @@ export default function Users() {
       else {
         url = `http://localhost:8080/api/user?page=${pageNumber}&size=10&sort=desc`;
       }
-
+      console.log(url);
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -296,16 +345,20 @@ export default function Users() {
 
                     <td className="px-8 py-5 text-right relative">
                       <div className="flex justify-end gap-2">
-                        <button
+                        {/* <button
                           onClick={() => handleOpenPasswordModal(user)}
                           className="p-2 text-slate-400 hover:text-[#0F4C5C] hover:bg-slate-100 rounded-lg transition-all"
                           title="Đổi mật khẩu"
                         >
                           <Lock size={18} />
-                        </button>
+                        </button> */}
 
-                        <button className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
-                          <MoreVertical size={18} />
+                        <button
+                          onClick={() => handleOpenInactiveModal(user)}
+                          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                          title="Vô hiệu hóa tài khoản"
+                        >
+                          <UserX size={18} />
                         </button>
                       </div>
                     </td>
@@ -370,19 +423,21 @@ export default function Users() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden"
+              className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh]"
             >
               <div className="p-5 border-b border-slate-50 flex justify-between items-center bg-[#0F4C5C] text-white">
                 <div className="flex items-center gap-3">
                   <UserPlus size={24} />
                   <h3 className="text-xl font-black">Thêm Nhân viên mới</h3>
                 </div>
-                <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-all">
+                <button onClick={() => {setShowAddModal(false); setError('')}} 
+                  className="p-2 hover:bg-white/10 rounded-full transition-all"
+                >
                   <X size={20} />
                 </button>
               </div>
 
-              <form className="p-8 space-y-5" onSubmit={handleCreateUser}>
+              <form className="p-8 space-y-5 overflow-y-auto" onSubmit={handleCreateUser}>
                 {error && (
                   <div className="flex items-start gap-3 p-4 mb-6 bg-red-50 border border-red-100 rounded-xl animate-in fade-in slide-in-from-top-1">
                     <div className="flex-shrink-0 mt-0.5">
@@ -473,7 +528,7 @@ export default function Users() {
                 <button 
                   type='submit'
                   disabled={loading}
-                  className="w-full py-4 bg-[#0F4C5C] text-white rounded-2xl font-black shadow-lg shadow-[#0F4C5C]/20 hover:opacity-95 transition-all"
+                  className="w-full py-4 bg-[#0F4C5C] text-white rounded-2xl font-black shadow-lg shadow-[#0F4C5C]/20 hover:opacity-95 transition-all disabled:opacity-50"
                 >
                   {loading ? 'ĐANG TẠO...' : 'TẠO TÀI KHOẢN'}
                 </button>
@@ -482,54 +537,109 @@ export default function Users() {
           </div>
         )}
 
-        {/* Change Password Modal */}
-        {showPasswordModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        {/* Inactive Modal */}
+        {showInactiveModal && selectedUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4"> 
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setShowPasswordModal(false)}
+              onClick={() => {setShowInactiveModal(false); setInactiveError('')}}
               className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             />
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden"
-            >
-              <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-orange-500 text-white">
-                <div className="flex items-center gap-3">
-                  <Lock size={24} />
-                  <h3 className="text-xl font-black">Cấp lại Mật khẩu</h3>
+              className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden" 
+            >  
+              <div className="p-8 text-center">
+                <div className="w-20 h-20 mx-auto rounded-full bg-red-100 flex items-center justify-center mb-6">
+                  <AlertTriangle size={42} className="text-red-600" />
                 </div>
-                <button onClick={() => setShowPasswordModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-all">
-                  <X size={20} />
-                </button>
-              </div>
-              <div className="p-8 space-y-6">
-                <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600 font-black">
-                    {selectedUser?.name.split(' ').map((n:any)=>n[0]).join('')}
+
+                <h2 className="text-2xl font-black text-slate-800 mb-3">
+                  Xác nhận vô hiệu hóa
+                </h2>
+
+                {inactiveError && (
+                  <div className="flex items-start gap-3 p-4 mb-6 bg-red-50 border border-red-100 rounded-xl animate-in fade-in slide-in-from-top-1">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <div className="flex items-center justify-center w-5 h-5 rounded-full border-2 border-red-500">
+                        <span className="text-red-500 text-xs font-bold">!</span>
+                      </div>
+                    </div>
+                        
+                    <div className="text-[#374151] text-[15px] leading-relaxed">
+                      {inactiveError}
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-slate-800">{selectedUser?.name}</p>
-                    <p className="text-xs text-slate-400">{selectedUser?.email}</p>
-                  </div>
-                </div>
-                <form className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Mật khẩu mới</label>
-                    <input type="password" placeholder="••••••••" className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500 outline-none transition-all text-sm" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Xác nhận mật khẩu</label>
-                    <input type="password" placeholder="••••••••" className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-4 focus:ring-orange-500/5 focus:border-orange-500 outline-none transition-all text-sm" />
-                  </div>
-                  <button className="w-full py-4 bg-orange-500 text-white rounded-2xl font-black shadow-lg shadow-orange-500/20 hover:opacity-95 transition-all">
-                    CẬP NHẬT MẬT KHẨU
+                )}
+
+                <p className="text-slate-500 text-sm leading-relaxed mb-2">
+                  Bạn có chắc chắn muốn vô hiệu hóa tài khoản {selectedUser.role}:
+                </p>
+
+                <p className="font-black text-[#0F4C5C] text-lg mb-8">
+                  {selectedUser.userName}
+                </p>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {setShowInactiveModal(false); setInactiveError('')}}
+                    className="flex-1 py-4 rounded-2xl border border-slate-200 text-slate-600 font-black hover:bg-slate-50 transition-all"
+                  >
+                    HỦY
                   </button>
-                </form>
+
+                  <button
+                    onClick={handleInactiveUser}
+                    disabled={inactiveLoading}
+                    className="flex-1 py-4 bg-red-500 text-white rounded-2xl font-black shadow-lg shadow-red-500/20 hover:opacity-95 transition-all disabled:opacity-50"
+                  >
+                    {inactiveLoading
+                      ? 'ĐANG XỬ LÝ...'
+                      : 'XÁC NHẬN'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Success Modal */}
+        {showSuccessModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowSuccessModal(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden" 
+            >
+              <div className="p-8 text-center">
+                <div className="w-20 h-20 mx-auto rounded-full bg-green-100 flex items-center justify-center mb-6">
+                  <CheckCircle2 size={42} className="text-green-600" />
+                </div>
+                <h2 className="text-2xl font-black text-slate-800 mb-3">
+                  Thành công!
+                </h2>
+                <p className="text-slate-500 text-sm leading-relaxed mb-8">
+                  {successMessage}
+                </p>
+                <button
+                  onClick={() => setShowSuccessModal(false)}
+                  className="w-full py-4 bg-[#0F4C5C] text-white rounded-2xl font-black shadow-lg shadow-[#0F4C5C]/20 hover:opacity-95 transition-all flex items-center justify-center gap-2 group"
+                >
+                  Quay lại trang Quản lý Nhân sự
+                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                </button>
               </div>
             </motion.div>
           </div>
